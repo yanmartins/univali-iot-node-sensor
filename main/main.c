@@ -35,11 +35,11 @@
 #define GOT_IPV6_BIT BIT(1)
 #define CONNECTED_BITS (GOT_IPV4_BIT)
 
-// #define WIFI_SSID ""
-// #define WIFI_PASS ""
-// #define BROKER_MQTT
+#define WIFI_SSID   "MAIS_RENATO"
+#define WIFI_PASS   "@cocodecachorrolavado#$"
+#define BROKER_MQTT "mqtt://test.mosquitto.org"
 
-static const char *TAG = "MQTT_EXAMPLE";
+static const char *TAG = "APP_MAIN";
 static EventGroupHandle_t s_connect_event_group;
 static ip4_addr_t s_ip_addr;
 void temperature_task(void *arg);
@@ -125,32 +125,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 static void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = "mqtt://test.mosquitto.org",
+        .uri = BROKER_MQTT,
     };
-#if CONFIG_BROKER_URL_FROM_STDIN
-    char line[128];
-
-    if (strcmp(mqtt_cfg.uri, "FROM_STDIN") == 0) {
-        int count = 0;
-        printf("Please enter url of mqtt broker\n");
-        while (count < 128) {
-            int c = fgetc(stdin);
-            if (c == '\n') {
-                line[count] = '\0';
-                break;
-            } else if (c > 0 && c < 127) {
-                line[count] = c;
-                ++count;
-            }
-            vTaskDelay(10 / portTICK_PERIOD_MS);
-        }
-        mqtt_cfg.uri = line;
-        printf("Broker url: %s\n", line);
-    } else {
-        ESP_LOGE(TAG, "Configuration mismatch: wrong broker url");
-        abort();
-    }
-#endif /* CONFIG_BROKER_URL_FROM_STDIN */
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
@@ -181,14 +157,7 @@ void app_main(void)
      */
     ESP_ERROR_CHECK(example_connect());
 
-    // float hum, temp;
-    // ESP_LOGW(TAG, "[APP] dht_init %d", dht_init(5, false));
-    // ESP_LOGW(TAG, "[APP] dht_read_float_data %d", dht_read_float_data(DHT_TYPE_DHT11, 5, &hum, &temp));
-    
-    // ESP_LOGW(TAG, "[APP] TEMPERATURE: %f", temp);
-    // ESP_LOGW(TAG, "[APP] HUMIMDITY: %f", hum);
     xTaskCreate(temperature_task, "temperature task", 2048, NULL, tskIDLE_PRIORITY, NULL);
-
 
     mqtt_app_start();
 }
@@ -202,7 +171,7 @@ esp_err_t example_connect(void)
     s_connect_event_group = xEventGroupCreate();
     start();
     xEventGroupWaitBits(s_connect_event_group, CONNECTED_BITS, true, true, portMAX_DELAY);
-    ESP_LOGI(TAG, "Connected to %s", "Lucas");
+    ESP_LOGI(TAG, "Connected to %s", WIFI_SSID);
     ESP_LOGI(TAG, "IPv4 address: " IPSTR, IP2STR(&s_ip_addr));
 #ifdef CONFIG_EXAMPLE_CONNECT_IPV6
     ESP_LOGI(TAG, "IPv6 address: " IPV6STR, IPV62STR(s_ipv6_addr));
@@ -225,8 +194,8 @@ static void start(void)
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     wifi_config_t wifi_config = { 0 };
 
-    strncpy((char *)&wifi_config.sta.ssid, "Lucas", 32);
-    strncpy((char *)&wifi_config.sta.password, "98tijolo98", 32);
+    strncpy((char *)&wifi_config.sta.ssid, WIFI_SSID, 32);
+    strncpy((char *)&wifi_config.sta.password, WIFI_PASS, 32);
 
     ESP_LOGI(TAG, "Connecting to %s...", wifi_config.sta.ssid);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
