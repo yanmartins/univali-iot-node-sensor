@@ -31,15 +31,14 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 
+#include "app_default.h"
+
 #define GOT_IPV4_BIT BIT(0)
 #define GOT_IPV6_BIT BIT(1)
 #define CONNECTED_BITS (GOT_IPV4_BIT)
 
-#define WIFI_SSID   "MAIS_RENATO"
-#define WIFI_PASS   "@cocodecachorrolavado#$"
-#define BROKER_MQTT "mqtt://test.mosquitto.org"
-
 static const char *TAG = "APP_MAIN";
+
 static EventGroupHandle_t s_connect_event_group;
 static ip4_addr_t s_ip_addr;
 void temperature_task(void *arg);
