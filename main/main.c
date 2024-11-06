@@ -32,6 +32,7 @@
 #include "mqtt_client.h"
 
 #include "app_default.h"
+#include "app_hardware.h"
 
 #define GOT_IPV4_BIT BIT(0)
 #define GOT_IPV6_BIT BIT(1)
@@ -203,17 +204,15 @@ static void start(void)
     ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
-#define DHT_GPIO 5 // D1 pin
-
 void temperature_task(void *arg)
 {
-    ESP_ERROR_CHECK(dht_init(DHT_GPIO, true));
+    ESP_ERROR_CHECK(dht_init(PIN_DHT_DATA, true));
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     while (1)
     {
         float humidity = 0;
         float temperature = 0;
-        if (dht_read_float_data(DHT_TYPE_DHT11, DHT_GPIO, &humidity, &temperature) == ESP_OK) {
+        if (dht_read_float_data(DHT_TYPE_DHT11, PIN_DHT_DATA, &humidity, &temperature) == ESP_OK) {
             // e.g. in dht22, 604 = 60.4%, 252 = 25.2 C
             // If you want to print float data, you should run `make menuconfig`
             // to enable full newlib and call dht_read_float_data() here instead
