@@ -35,14 +35,17 @@
 #define GOT_IPV6_BIT BIT(1)
 #define CONNECTED_BITS (GOT_IPV4_BIT)
 
-#define WIFI_SSID   "MAIS_RENATO"
-#define WIFI_PASS   "@cocodecachorrolavado#$"
+#define DHT_GPIO 5 // D1 pin
+#define WIFI_SSID   ""
+#define WIFI_PASS   ""
 #define BROKER_MQTT "mqtt://test.mosquitto.org"
 
 static const char *TAG = "APP_MAIN";
 static EventGroupHandle_t s_connect_event_group;
 static ip4_addr_t s_ip_addr;
 void temperature_task(void *arg);
+static esp_mqtt_client_handle_t client = NULL;
+static bool mqtt_connected = false;
 
 static void start(void);
 static esp_err_t example_connect(void);
@@ -75,18 +78,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_publish(client, "mestrado/iot/aluno/yan/hum", "23", 0, 1, 0);
-            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-
-            // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-            // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-            // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-            // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-            // msg_id = esp_mqtt_client_unsubscribe(cli{ent, "/topic/qos1");
-            // ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
-            break;
+            mqtt_connected = true;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
             break;
@@ -128,7 +120,7 @@ static void mqtt_app_start(void)
         .uri = BROKER_MQTT,
     };
 
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
     esp_mqtt_client_start(client);
 }
@@ -204,25 +196,33 @@ static void start(void)
     ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
-#define DHT_GPIO 5 // D1 pin
-
 void temperature_task(void *arg)
 {
     ESP_ERROR_CHECK(dht_init(DHT_GPIO, true));
     vTaskDelay(2000 / portTICK_PERIOD_MS);
+    char convertido[16];
+
     while (1)
     {
         float humidity = 0;
         float temperature = 0;
-        if (dht_read_float_data(DHT_TYPE_DHT11, DHT_GPIO, &humidity, &temperature) == ESP_OK) {
+        if (dht_read_data(DHT_TYPE_DHT11, DHT_GPIO, &humidity, &temperature) == ESP_OK) {
             // e.g. in dht22, 604 = 60.4%, 252 = 25.2 C
             // If you want to print float data, you should run `make menuconfig`
             // to enable full newlib and call dht_read_float_data() here instead
+            if(mqtt_connected)
+            {
+                sprintf(convertido, "%.2f", humidity);
+                esp_mqtt_client_publish(client, "mestrado/iot/aluno/yan/umidade", convertido, 0, 1, 0);
+                sprintf(convertido, "%.2f", temperature);
+                esp_mqtt_client_publish(client, "mestrado/iot/aluno/yan/temperatura", convertido, 0, 1, 0);
+            }
+
             printf("Humidity: %f Temperature: %f\n", humidity, temperature);
         } else {
             printf("Fail to get dht temperature data\n");
         }
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
 }
