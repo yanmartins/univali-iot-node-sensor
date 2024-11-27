@@ -52,7 +52,7 @@ esp_err_t dht_init(gpio_num_t pin, bool pull_up);
   *     - ESP_OK Success
   *     - ESP_FAIL Init error
   */
-esp_err_t dht_read_data(dht_sensor_type_t sensor_type, gpio_num_t pin, int16_t *humidity, int16_t *temperature);
+esp_err_t dht_read_data(dht_sensor_type_t sensor_type, gpio_num_t pin, float *humidity, float *temperature);
 
 
 /**
